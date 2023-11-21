@@ -1,19 +1,33 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <signal.h>
 #include <sys/wait.h>
 #include "varlib.h"
 
-int execute(char *argv[], int background)
+int execute(char *argv[])
 {
     extern char **environ;
 
     int pid;
     int child_info = -1;
+    int bg = 0;
 
     if (argv[0] == NULL)
         return 0;
+
+    int i = 0;
+    while (argv[i] != NULL && argv[i][0] != '\0')
+    {
+        if (strchr(argv[i], '&') != NULL)
+        {
+            bg = 1;
+            argv[i] = NULL;
+            break;
+        }
+        i++;
+    }
 
     if ((pid = fork()) == -1)
         perror("fork");
@@ -28,9 +42,13 @@ int execute(char *argv[], int background)
     }
     else
     {
-        if (!background)
+        if (bg == 0)
+        {
             if (wait(&child_info) == -1)
                 perror("wait");
+        }
+
+        bg = 0;
     }
 
     return child_info;
