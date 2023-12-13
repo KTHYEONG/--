@@ -19,7 +19,10 @@ char *next_cmd(char *prompt, FILE *fp)
     while ((c = getc(fp)) != EOF)
     {
         if (c == ';')
+        {
+            cnt++;
             break;
+        }
 
         if (pos + 1 >= bufspace)
         {
@@ -30,11 +33,12 @@ char *next_cmd(char *prompt, FILE *fp)
             bufspace += BUFSIZ;
         }
 
-        if (c == '\n') {
-            cnt++;
+        if (c == '\n')
+        {
+            cnt = 0;
             break;
         }
-            
+
         buf[pos++] = c;
     }
     if (c == EOF && pos == 0)
