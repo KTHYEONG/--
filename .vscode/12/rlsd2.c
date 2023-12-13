@@ -8,8 +8,9 @@
 #include <time.h>
 #include <ctype.h>
 #include <strings.h>
+#include <sys/wait.h>
 
-#define PORTNUM 15000
+#define PORTNUM 10605
 #define HOSTLEN 256
 #define oops(msg)    \
     {                \
@@ -26,9 +27,8 @@ int main(int ac, char *av[])
     char hostname[HOSTLEN];
     int sock_id, sock_fd;
     FILE *sock_fpi, *sock_fpo;
-    FILE *pipe_fp;
     char dirname[BUFSIZ];
-    char command[BUFSIZ];
+    char command[BUFSIZ + 5];
     int dirlen, c;
 
     sock_id = socket(PF_INET, SOCK_STREAM, 0);
@@ -61,13 +61,37 @@ int main(int ac, char *av[])
 
         if ((sock_fpo = fdopen(sock_fd, "w")) == NULL)
             oops("fdopen writing");
-        spintf(command, "ls %s", dirname);
-        if ((pipe_fp = popen(command, "r")) == NULL)
-            oops("popen");
-        while ((c = getc(pipe_fp)) != EOF)
-            putc(c, sock_fpo);
 
-        pclose(pipe_fp);
+        int pipe_fd[2];
+        if (pipe(pipe_fd) == -1)
+            oops("pipe");
+
+        pid_t child_pid = fork();
+        if (child_pid == -1)
+        {
+            oops("fork");
+        }
+        else if (child_pid == 0)
+        {
+            close(pipe_fd[0]);
+            dup2(pipe_fd[1], 1);
+            close(pipe_fd[1]);
+
+            execlp("ls", "ls", dirname, NULL);
+            oops("execlp");
+        }
+        else
+        {
+            close(pipe_fd[1]);
+
+            while (read(pipe_fd[0], &c, 1) > 0)
+                putc(c, sock_fpo);
+
+            close(pipe_fd[0]);
+
+            wait(NULL);
+        }
+
         fclose(sock_fpo);
         fclose(sock_fpi);
     }

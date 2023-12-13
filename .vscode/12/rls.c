@@ -7,7 +7,7 @@
 #include <netdb.h>
 #include <string.h>
 
-#define PORTNUM 15000
+#define PORTNUM 10605
 #define oops(msg)    \
     {                \
         perror(msg); \
@@ -44,7 +44,7 @@ int main(int ac, char *av[])
     if (write(sock_id, "\n", 1) == -1)
         oops("write");
 
-    while ((n_read = read(sock_id, buffe, BUFSIZ)) > 0)
+    while ((n_read = read(sock_id, buffer, BUFSIZ)) > 0)
         if (write(1, buffer, n_read) == -1)
             oops("write");
     close(sock_id);
